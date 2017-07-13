@@ -93,7 +93,6 @@ class AVL:
                 ancestors.append((current,  1))
                 current = current.node.right
 
-        ancestors.append((current, 0))  # caso especial doble rotación de un C insertado como hoja
         # inserción propiamente
         current.node = AVLNode(key, data)
 
@@ -101,8 +100,6 @@ class AVL:
         a_node_ix = None
         for i, a in reversed(list(enumerate(ancestors))):
             n, position = a
-            if position == 0: # pa qué sumar 0, indiferente, inserción de hoja, conveniencia
-                continue
             n.node.b += position
             if n.node.b in {-2, 2}: # desequilibrio
                 a_node_ix = i
@@ -114,17 +111,16 @@ class AVL:
         if a_node_ix is not None:
             a_node, a_position = ancestors[a_node_ix]
             b_node, b_position = ancestors[a_node_ix + 1]
-            if a_position == b_position:
-                if a_position == -1:
+            if (a_node.node.b >= 0) ^ (b_node.node.b < 0): # mismo signo? -> rot simple
+                if a_node.node.b < 0:
                     AVL._simpleRotLeft(a_node, b_node)
                 else:
                     AVL._simpleRotRight(a_node, b_node)
             else:
-                c_node, c_position = ancestors[a_node_ix + 2]
-                if a_position == -1:
-                    AVL._doubleRotLeft(a_node, b_node, c_node)
+                if a_node.node.b < 0:
+                    AVL._doubleRotLeft(a_node, b_node, b_node.node.right)
                 else:
-                    AVL._doubleRotRight(a_node, b_node, c_node)
+                    AVL._doubleRotRight(a_node, b_node, b_node.node.left)
 
 def check_binary_order(avl):
     if avl.node is None:

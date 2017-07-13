@@ -80,25 +80,32 @@ class AVL:
         b_new_node.node.b = dcb
         c_new_node.node.b = 0
 
-    def insert(self, key, data):
-        ancestors = []
+    def find(self, key):
+        path = []
         current = self
-
-        # búsqueda del punto de inserción
+        
         while not current.empty():
             if key < current.node.key:
-                ancestors.append((current, -1))
+                path.append((current, -1))
                 current = current.node.left
             else:
-                ancestors.append((current,  1))
+                path.append((current,  1))
                 current = current.node.right
+        path.append((current, 0))
+        return path
+    
+    def _chkB(self):
+        if self.empty():
+            return True
+        else:
+            res = self.node.b in {-1, 0, 1} and self.node.left._chkB() and self.node.right._chkB()
+            #if not res:
+            #   print("Failed with {}".format(self.node.b))
+            return res
 
-        # inserción propiamente
-        current.node = AVLNode(key, data)
-
-        # actualizar factores de equilibrio b
+    def _updateB(self, path):
         a_node_ix = None
-        for i, a in reversed(list(enumerate(ancestors))):
+        for i, a in reversed(list(enumerate(path))):
             n, position = a
             n.node.b += position
             if n.node.b in {-2, 2}: # desequilibrio
@@ -106,21 +113,43 @@ class AVL:
                 break
             if n.node.b == 0: # asegura que no hay desequilibrio, conservación altura
                 break
+        return path[a_node_ix][0] if a_node_ix is not None else None
 
-        # reequilibrar
-        if a_node_ix is not None:
-            a_node, a_position = ancestors[a_node_ix]
-            b_node, b_position = ancestors[a_node_ix + 1]
-            if (a_node.node.b >= 0) ^ (b_node.node.b < 0): # mismo signo? -> rot simple
-                if a_node.node.b < 0:
-                    AVL._simpleRotLeft(a_node, b_node)
-                else:
-                    AVL._simpleRotRight(a_node, b_node)
+    def _rebalance(self, a_node):
+        b_node = a_node.node.left if a_node.node.b < 0 else a_node.node.right
+        if (a_node.node.b >= 0) ^ (b_node.node.b < 0): # mismo signo? -> rot simple
+            if a_node.node.b < 0:
+                AVL._simpleRotLeft(a_node, b_node)
             else:
-                if a_node.node.b < 0:
-                    AVL._doubleRotLeft(a_node, b_node, b_node.node.right)
-                else:
-                    AVL._doubleRotRight(a_node, b_node, b_node.node.left)
+                AVL._simpleRotRight(a_node, b_node)
+        else:
+            if a_node.node.b < 0:
+                AVL._doubleRotLeft(a_node, b_node, b_node.node.right)
+            else:
+                AVL._doubleRotRight(a_node, b_node, b_node.node.left)
+
+    def dump(self):
+        if self.empty():
+            print("* ", end='')
+        else:
+            print("{} [ ".format(self.node.key), end='')
+            self.node.left.dump()
+            print(", ", end='')
+            self.node.right.dump()
+            print(" ]", end='')
+
+    def insert(self, key, data):
+        ancestors = self.find(key)
+        place, _ = ancestors.pop()
+        place.node = AVLNode(key, data)
+
+        a_node = self._updateB(ancestors)
+
+        if a_node is not None:
+            self._rebalance(a_node)
+
+    def delete(self, key):
+        pass
 
 def check_binary_order(avl):
     if avl.node is None:
@@ -137,6 +166,10 @@ def check_avl_condition(avl):
         return True
     elif abs(avl.node.left.height() - avl.node.right.height()) <= 1:
         return check_avl_condition(avl.node.left) and check_avl_condition(avl.node.right)
+    else:
+        print("{} {} ".format(avl.node.left.height(), avl.node.right.height()))
+        avl.dump()
+        return False
 
 def check_avl_balances(avl):
     if avl.node is None:
@@ -144,7 +177,7 @@ def check_avl_balances(avl):
     else:
         height_left  = avl.node.left.height()
         height_right = avl.node.right.height()
-        return avl.node.b == height_right - height_left and check_avl_balances(avl.node.left) and check_avl_balances(avl.node.right)
+        return avl.node.b == height_right - height_left and avl.node.b in {-1, 0, 1} and check_avl_balances(avl.node.left) and check_avl_balances(avl.node.right)
 
 def avl_from_list(ls):
     avl = AVL()

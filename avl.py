@@ -22,13 +22,63 @@ class AVL:
             return 1 + max(self.node.left.height(), self.node.right.height())
 
     def _simpleRotLeft(a_node, b_node):
-        pass
+        """Izqda a dcha"""
+        a_new_node, b_new_node = b_node, a_node
+        alpha = b_node.node.left
+        beta = b_node.node.right
+        gamma = a_node.node.right
+        b_new_node.node, a_new_node.node = b_node.node, a_node.node
+        b_new_node.node.left = alpha
+        b_new_node.node.right = a_new_node
+        a_new_node.node.left = beta
+        a_new_node.node.right = gamma
+        a_new_node.node.b = b_new_node.node.b = 0
+
     def _simpleRotRight(a_node, b_node):
-        pass
+        a_new_node, b_new_node = b_node, a_node
+        alpha = a_node.node.left
+        beta = b_node.node.left
+        gamma = b_node.node.right
+        b_new_node.node, a_new_node.node = b_node.node, a_node.node
+        b_new_node.node.left = a_new_node
+        b_new_node.node.right = gamma
+        a_new_node.node.left = alpha
+        a_new_node.node.right = beta
+        a_new_node.node.b = b_new_node.node.b = 0
+
     def _doubleRotLeft(a_node, b_node, c_node):
-        pass
+        c_new_node, a_new_node, b_new_node = a_node, c_node, b_node
+        beta = c_node.node.left
+        gamma = c_node.node.right
+        alpha = b_node.node.left
+        delta = a_node.node.right
+        izb = 0 if c_node.node.b == -1 or c_node.node.b == 0 else -1
+        dcb = 0 if c_node.node.b ==  1 or c_node.node.b == 0 else  1
+        a_new_node.node, b_new_node.node, c_new_node.node = a_node.node, b_node.node, c_node.node
+        c_new_node.node.left = b_new_node
+        c_new_node.node.right = a_new_node
+        b_new_node.node.left, b_new_node.node.right = alpha, beta
+        a_new_node.node.left, a_new_node.node.right = gamma, delta
+        b_new_node.node.b = izb
+        a_new_node.node.b = dcb
+        c_new_node.node.b = 0
+
     def _doubleRotRight(a_node, b_node, c_node):
-        pass
+        c_new_node, a_new_node, b_new_node = a_node, c_node, b_node
+        alpha = a_node.node.left
+        delta = b_node.node.right
+        beta = c_node.node.left
+        gamma = c_node.node.right
+        izb = 0 if c_node.node.b == -1 or c_node.node.b == 0 else -1
+        dcb = 0 if c_node.node.b ==  1 or c_node.node.b == 0 else  1
+        a_new_node.node, b_new_node.node, c_new_node.node = a_node.node, b_node.node, c_node.node
+        c_new_node.node.left = a_new_node
+        c_new_node.node.right = b_new_node
+        b_new_node.node.left, b_new_node.node.right = gamma, delta
+        a_new_node.node.left, a_new_node.node.right = alpha, beta
+        a_new_node.node.b = izb
+        b_new_node.node.b = dcb
+        c_new_node.node.b = 0
 
     def insert(self, key, data):
         ancestors = []
@@ -51,13 +101,13 @@ class AVL:
         a_node_ix = None
         for i, a in reversed(list(enumerate(ancestors))):
             n, position = a
-            if position == 0:
+            if position == 0: # pa qué sumar 0, indiferente, inserción de hoja, conveniencia
                 continue
-            if n.node.b == position:
+            n.node.b += position
+            if n.node.b in {-2, 2}: # desequilibrio
                 a_node_ix = i
                 break
-            n.node.b += position
-            if n.node.b == 0:
+            if n.node.b == 0: # asegura que no hay desequilibrio, conservación altura
                 break
 
         # reequilibrar
@@ -65,62 +115,16 @@ class AVL:
             a_node, a_position = ancestors[a_node_ix]
             b_node, b_position = ancestors[a_node_ix + 1]
             if a_position == b_position:
-                # rotación simple
-                a_new_node = b_node
-                b_new_node = a_node
-                b_new_node.node.b = a_new_node.node.b = 0
                 if a_position == -1:
-                    # de izqda a dcha
-                    alpha = b_node.node.left
-                    beta = b_node.node.right
-                    gamma = a_node.node.right
-                    b_new_node.node, a_new_node.node = b_node.node, a_node.node
-                    b_new_node.node.left = alpha
-                    b_new_node.node.right = a_new_node
-                    a_new_node.node.left = beta
-                    a_new_node.node.right = gamma
+                    AVL._simpleRotLeft(a_node, b_node)
                 else:
-                    # dcha a izqda
-                    alpha = a_node.node.left
-                    beta = b_node.node.left
-                    gamma = b_node.node.right
-                    b_new_node.node, a_new_node.node = b_node.node, a_node.node
-                    b_new_node.node.left = a_new_node
-                    b_new_node.node.right = gamma
-                    a_new_node.node.left = alpha
-                    a_new_node.node.right = beta
+                    AVL._simpleRotRight(a_node, b_node)
             else:
-                # rotación doble
                 c_node, c_position = ancestors[a_node_ix + 2]
-                c_new_node = a_node
-                a_new_node = c_node
-                b_new_node = b_node
-                beta = c_node.node.left
-                gamma = c_node.node.right
-                c_node.node.b = 0
                 if a_position == -1:
-                    # izqda a dcha
-                    alpha = b_node.node.left
-                    delta = a_node.node.right
-                    a_new_node.node, b_new_node.node, c_new_node.node = a_node.node, b_node.node, c_node.node
-                    c_new_node.node.left = b_new_node
-                    c_new_node.node.right = a_new_node
-                    b_new_node.node.left, b_new_node.node.right = alpha, beta
-                    a_new_node.node.left, a_new_node.node.right = gamma, delta
-                    b_new_node.node.b = 0 if c_position == -1 or c_position == 0 else -1
-                    a_new_node.node.b = 0 if c_position ==  1 or c_position == 0 else  1
+                    AVL._doubleRotLeft(a_node, b_node, c_node)
                 else:
-                    # dcha a izqda
-                    alpha = a_node.node.left
-                    delta = b_node.node.right
-                    a_new_node.node, b_new_node.node, c_new_node.node = a_node.node, b_node.node, c_node.node
-                    c_new_node.node.left = a_new_node
-                    c_new_node.node.right = b_new_node
-                    b_new_node.node.left, b_new_node.node.right = gamma, delta
-                    a_new_node.node.left, a_new_node.node.right = alpha, beta
-                    a_new_node.node.b = 0 if c_position == -1 or c_position == 0 else -1
-                    b_new_node.node.b = 0 if c_position ==  1 or c_position == 0 else  1
-
+                    AVL._doubleRotRight(a_node, b_node, c_node)
 
 def check_binary_order(avl):
     if avl.node is None:

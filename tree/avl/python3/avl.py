@@ -88,9 +88,11 @@ class AVL:
             if key < current.node.key:
                 path.append((current, -1))
                 current = current.node.left
-            else:
+            elif key > current.node.key:
                 path.append((current,  1))
                 current = current.node.right
+            else:
+                break
         path.append((current, 0))
         return path
     
@@ -103,7 +105,7 @@ class AVL:
             #   print("Failed with {}".format(self.node.b))
             return res
 
-    def _updateB(self, path):
+    def _updateBInsert(self, path):
         a_node_ix = None
         for i, a in reversed(list(enumerate(path))):
             n, position = a
@@ -112,6 +114,18 @@ class AVL:
                 a_node_ix = i
                 break
             if n.node.b == 0: # asegura que no hay desequilibrio, conservación altura
+                break
+        return path[a_node_ix][0] if a_node_ix is not None else None
+
+    def _updateBDelete(self, path):
+        a_node_ix = None
+        for i, a in reversed(list(enumerate(path))):
+            n, position = a
+            n.node.b -= position
+            if n.node.b in {-2, 2}: # desequilibrio
+                a_node_ix = i
+                break
+            if n.node.b in {-1, 1}: # asegura que no hay desequilibrio, conservación altura
                 break
         return path[a_node_ix][0] if a_node_ix is not None else None
 
@@ -141,15 +155,70 @@ class AVL:
     def insert(self, key, data):
         ancestors = self.find(key)
         place, _ = ancestors.pop()
+        if not place.empty(): # assert place.node.key == key
+            place.node.data = data # se sobreescribe
+            return
         place.node = AVLNode(key, data)
 
-        a_node = self._updateB(ancestors)
+        a_node = self._updateBInsert(ancestors)
 
         if a_node is not None:
             self._rebalance(a_node)
 
+    def max(self):
+        if self.empty():
+            return None
+        else:
+            res = self.node.right.max()
+            return res if res is not None else self
+
+    def min(self):
+        if self.empty():
+            return None
+        else:
+            res = self.node.left.min()
+            return res if res is not None else self
+
+    def maxPath(self):
+        path = []
+        current = self
+        while not current.empty():
+            path.append(current)
+            current = current.node.right
+        return path
+
+    def isLeaf(self):
+        return not self.empty() and self.node.left.empty() and self.node.right.empty()
+    
+    def isSemiLeaf(self):
+        return not self.empty() and (self.node.left.empty() or self.node.right.empty())
+
     def delete(self, key):
-        pass
+        ancestors = self.find(key)
+        place, _ = ancestors.pop()
+        if place.empty(): # nada que borrar, no encontrado
+            return
+        
+        if place.isLeaf():
+            place.node = None
+        elif place.isSemiLeaf():
+            subtree = place.node.left if place.node.right.empty() else place.node.right
+            place.node = subtree.node
+        else:
+            maxim_path = place.node.left.maxPath()
+            maxim = maxim_path.pop()
+            node = maxim.node
+            if maxim.isLeaf():
+                maxim.node = None
+            else: # es semileaf
+                maxim.node = maxim.node.left
+            place.node.key = node.key
+            place.node.data = node.data
+            ancestors = maxim_path
+            
+        a_node = self._updateBDelete(ancestors)
+        if a_node is not None:
+            self._rebalance(a_node)
 
 def check_binary_order(avl):
     if avl.node is None:
@@ -209,7 +278,7 @@ def selections(ls):
             yield [x] + s
             yield s
 
-if __name__ == '__main__':
+def test_inserts():
     cn = 0
     for c in combinations(list(range(0,25))):
         avl = avl_from_list(c)
@@ -218,3 +287,25 @@ if __name__ == '__main__':
         print("Combinación {} tests => bin {}, avl {}, bal {}".format(cn, tst1, tst2, tst3))
         if not(tst1 and tst2 and tst3):
             break
+
+def avl_multi_delete(avl, deletes):
+    for k in deletes:
+        avl.delete(k)
+
+def test_deletes():
+    n = 12
+    cn = 0
+    for c in combinations(list(range(0,n))):
+        avl = avl_from_list(c)
+        cn += 1
+        sn = 0
+        for s in selections(list(range(0,n))):
+            avl_multi_delete(avl, s)
+            sn += 1
+            tst1, tst2, tst3 = check_binary_order(avl), check_avl_condition(avl), check_avl_balances(avl)
+            print("Combinación {} Selección {} tests => bin {}, avl {}, bal {}".format(cn, sn, tst1, tst2, tst3))
+        if not(tst1 and tst2 and tst3):
+            return
+
+if __name__ == '__main__':
+    test_deletes()

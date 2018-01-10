@@ -1,3 +1,7 @@
+# Árbol AVL basado en 2 rotaciones (simple y compleja)
+# Lo que almacena cada nodo es una clave entera la cual dirige el ordenamiento y un puntero a datos arbitrarios
+# Creo que es el compromiso más flexible sin perder simplicidad ni eficiencia
+
 class AVLNode:
     def __init__(self, key, data):
         self.key = key
@@ -5,7 +9,6 @@ class AVLNode:
         self.left = AVL()
         self.right = AVL()
         self.b = 0
-
 
 class AVL:
     """Árbol AVL"""
